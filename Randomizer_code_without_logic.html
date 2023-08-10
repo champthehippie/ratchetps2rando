@@ -165,7 +165,7 @@ class CheatGenerate {
 	build()	{
 		let output = '';
 		for (let i = 0; i < this.ammount ;i++) 
-			output = `${output}patch=1,EE,${this.line[i].type}${this.line[i].address},extended,${this.line[i].count}${this.line[i].sign}${this.line[i].size}${this.line[i].value}\n`;
+			output = `${output}patch=1,EE,${(this.line[i].type).toString(16)}0${this.line[i].address},extended,${this.line[i].count}${this.line[i].sign}${this.line[i].size}${this.line[i].value}\n`;
 		
 		return output;
 	}
