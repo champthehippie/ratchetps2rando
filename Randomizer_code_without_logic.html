@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+	<h1>RAC1 PS2 Randomizer Prototype v0.1.1</h1>
+	<div id="InitialBlock">
+		<form>
+			<label for="seedNumber">Seed Number:</label>
+			<input type="text" id="seedNumber" name="seedNumber"><br><br>
+			<button type="button" onclick="randomize()"> Randomize</button>		
+			<p>Leave the seed blank or enter a non-number for a random seed.</p>
+		</form>
+	</div>
+	<div id="OutputBlock"></div>
+
+</body>
+</html>
+
+<script>
+
+// all memory address offsets are for PAL 2.0
+class Item {
+	constructor(id,name,hasGold) {
+		this.id = id;
+		this.name = name;
+		this.hasGold = hasGold;
+	}
+
+    // 1st offset for the item memory address for Codebot and Nanotech, 2nd offset for the item memory address given its item id
+	offset1 = () => (this.id + (this.id > 0x2F ? 0x13D460: 0x13D5C8)).toString(16);
+    
+	offset2 = () => (this.id + 0x13E620).toString(16); //this is 0x1058 above the first offset, this is for golden weapons
+}
+
+class Location {
+	constructor(id,name,requirements) {
+		this.id = id;
+		this.name = name;
+		this.requirements = requirements;
+	}
+
+	offset = () => (this.id + 0x14BFC4).toString(16); //offset for the location memory address given its location id
+}
+
+class Planet {
+	constructor(id) {
+		this.id = id;
+		switch (id) {
+			case 0x00: 
+				this.name = 'Veldin1';	
+				break;
+			case 0x01: 
+				this.name = 'Novalis';	
+				break;
+			case 0x02: 
+				this.name = 'Aridia';	
+				break;
+			case 0x03: 
+				this.name = 'Kerwan';	
+				break;
+			case 0x04: 
+				this.name = 'Eudora';	
+				break;
+			case 0x05: 
+				this.name = 'Rilgar';	
+				break;
+			case 0x06: 
+				this.name = 'Blarg';		
+				break;
+			case 0x07: 
+				this.name = 'Umbris';	
+				break;
+			case 0x08: 
+				this.name = 'Batalia';	
+				break;
+			case 0x09: 
+				this.name = 'Gaspar';	
+				break;
+			case 0x0A: 
+				this.name = 'Orxon';		
+				break;
+			case 0x0B: 
+				this.name = 'Pokitaru';	
+				break;
+			case 0x0C: 
+				this.name = 'Hoven';		
+				break;
+			case 0x0D: 
+				this.name = 'Gemlik';	
+				break;
+			case 0x0E: 
+				this.name = 'Oltanis';	
+				break;
+			case 0x0F: 
+				this.name = 'Quartu';	
+				break;
+			case 0x10: 
+				this.name = 'Kalebo';	
+				break;
+			case 0x11: 
+				this.name = 'Fleet';		
+				break;
+			case 0x12: 
+				this.name = 'Veldin 2';	
+				break;
+		}
+	}
+
+	offset = () => ((this.id * 4) + 0x13D616).toString(16); //offset for the location memory address given its location id	
+}
+
+class CheatType {
+	constructor(name, type, address, count, sign, size, value) {
+		this.name = name;
+		this.type = type;
+		this.address = address;
+		this.count = count;
+		this.sign = sign;
+		this.size = size;
+		this.value = value;
+		}
+}
+
+class CheatGenerate {
+	constructor(lines) {
+		this.ammount = lines.length;
+		this.line = [];
+			for (let i = 0; i < lines.length; i++) 
+				this.line[i] = lines[i];			
+	}
+
+	comment() {
+		let output = '//';
+		for (let i = 0; i < this.ammount; i++) {
+			switch (this.line[i].type) {
+				case 0:	// 1 Byte write
+				case 1:	// 2 Byte write
+				case 3: // 4 Byte write
+					output = `${output}${(this.line[i].value == 0 ? 'remove': 'unlock')} ${this.line[i].name} `;
+					break;
+				case 0xD:	// Do multiple lines if condition met
+					output = `${output}If ${this.line[i].name} ${this.getSign(this.line[i].sign)} 0x${this.line[i].value} then execute ${(this.line[i].count != 1 ? `next ${new Number(this.line[i].count)} lines `: '')}`;
+					break;
+			}
+
+			if (i !== this.ammount - 1) output = `${output}-> `;
+		}
+		return output;
+	}
+
+	getSign(sign){
+		switch (sign){
+			case 0: return 'is';
+			case 1: return 'is not';
+			case 2: return 'is less than';
+			case 3: return 'is greater than';
+			case 4: return 'NAND';
+			case 5: return 'AND';
+			case 6: return 'NOR';
+			case 7: return 'OR';
+			default: return 'ERROR: "INVALID COMPARITOR"';
+		}
+	}
+
+	build()	{
+		let output = '';
+		for (let i = 0; i < this.ammount ;i++) 
+			output = `${output}patch=1,EE,${this.line[i].type}${this.line[i].address},extended,${this.line[i].count}${this.line[i].sign}${this.line[i].size}${this.line[i].value}\n`;
+		
+		return output;
+	}
+
+	print = () => `${this.comment()}\n${this.build()}\n`;
+}
+
+// A random number generator that uses the 64-bit squares RNG algorithm found here: https://squaresrng.wixsite.com/rand
+class SquaresRNG {
+	constructor(seed) {
+		this.seed = BigInt(seed);
+	}
+
+	random(upperBound) {
+  		const shift = BigInt(32);
+  		const keyUpper = BigInt(0xb639dc82);
+  		const keyLower = BigInt(0x1e6b5a27);
+  		const key = BigInt((keyUpper << shift) | keyLower);
+  		const upper = BigInt(upperBound);
+  		const parts = BigInt(0xFFFFFFFF);
+  		const maxNum = BigInt((parts << shift) | parts);
+  		let x = (this.seed * key) & maxNum;
+  		let z = (x + key) & maxNum;
+  		let y = x;
+
+  		//Round 1
+  		x = (x * x + y) & maxNum;
+  		x = ((x >> shift) | (x << shift)) & maxNum;
+
+  		//Round 2
+  		x = (x * x + z) & maxNum;
+  		x = ((x >> shift) | (x << shift)) & maxNum;
+
+  		//Round 3
+  		x = (x * x + y) & maxNum;
+  		x = ((x >> shift) | (x << shift)) & maxNum;
+
+  		//Round 4
+  		let t = x = (x * x + z) & maxNum;
+  		x = ((x >> shift) | (x << shift)) & maxNum;
+
+  		//Round 5
+  		this.seed = t ^ ((((x * x + y) & maxNum) >> shift) & maxNum)
+  		return (this.seed % upper);
+	}
+}
+
+function randomize() {
+	let inputseed = document.getElementById("seedNumber").value;
+
+	if (isNaN(inputseed) || inputseed == 0) 
+		inputseed = Math.floor(Math.random() * 0xFFFFFFFF);
+	else
+		inputseed = Number(inputseed);
+
+	let rng = new SquaresRNG(inputseed);
+
+	//ITEMS:
+	let itemList = [
+		new Item	(0x02,	"Heli Pack", 					0),
+		new Item	(0x03,	"Thruster Pack",				0),
+		new Item	(0x04,	"Hydro Pack",					0),
+		new Item	(0x05,	"Sonic Summoner",				0),
+		new Item	(0x06,	"O2 Mask",						0),
+		new Item	(0x09,	"Progressive Suck Cannon",		1),
+		new Item	(0x09,	"Progressive Suck Cannon",		1),
+		new Item	(0x0A,	"Progressive Bomb Glove",		1),
+		new Item	(0x0A,	"Progressive Bomb Glove",		1),
+		new Item	(0x0B,	"Progressive Devastator",		1),
+		new Item	(0x0B,	"Progressive Devastator",		1),
+		new Item	(0x0C,	"Swingshot",					0),
+		new Item	(0x0D,	"Visibomb",						0),
+		new Item	(0x0E,	"Taunter",						0),
+		new Item	(0x0F,	"Progressive Blaster",			1),
+		new Item	(0x0F,	"Progressive Blaster",			1),
+		new Item	(0x10,	"Progressive Pyrocitor",		1),
+		new Item	(0x10,	"Progressive Pyrocitor",		1),
+		new Item	(0x11,	"Progressive Mine Glove",		1),
+		new Item	(0x11,	"Progressive Mine Glove",		1),
+		new Item	(0x12,	"Walloper",						0),
+		new Item	(0x13,	"Progressive Tesla Claw",		1),
+		new Item	(0x13,	"Progressive Tesla Claw",		1),
+		new Item	(0x14,	"Progressive Glove of Doom",	1),
+		new Item	(0x14,	"Progressive Glove of Doom",	1),
+		new Item	(0x15,	"Progressive Morph-O-Ray",		1),
+		new Item	(0x15,	"Progressive Morph-O-Ray",		1),
+		new Item	(0x16,	"Hydrodisplacer",				0),
+		new Item	(0x17,	"R.Y.N.O.",						0),
+		new Item	(0x18,	"Drone Device",					0),
+		new Item	(0x19,	"Progressive Decoy Glove",		1),
+		new Item	(0x19,	"Progressive Decoy Glove",		1),
+		new Item	(0x1A,	"Trespasser",					0),
+		new Item	(0x1C,	"Magneboots",					0),
+		new Item	(0x1D,	"Grindboots",					0),
+		new Item	(0x1F,	"Hologuise",					0),
+		new Item	(0x20,	"PDA",							0),
+		new Item	(0x32,	"Codebot",						0),
+		new Item	(0x34,	"Progressive Nanotech",			0),
+		new Item	(0x35,	"Progressive Nanotech",			0)
+	];
+	//UNUSED_ITEMS:
+	//const itemPilot			= new Item	(0x07,	"Pilots Helmet");
+	//const itemMetaldetector	= new Item	(0x1B,	"Metaldetector");
+	//const itemHoverboard		= new Item	(0x1E,	"Hoverboard");
+	//const itemMapOMatic		= new Item	(0x21,	"Map-O-Matic");
+	//const itemBoltGrabber		= new Item	(0x22,	"Bolt Grabber");
+	//const itemPersuader		= new Item	(0x23,	"Persuader");
+	//const itemZoomerator		= new Item	(0x30,	"Zoomerator");
+	//const itemRaritanium		= new Item	(0x31,	"Raritanium");
+	
+	//CHECKS:
+	let locationList = [
+		new Location (0x00, "Novalis Waterworks Bolt", 		"Requirements"	),
+		new Location (0x01, "Novalis Slime Cave Bolt", 		""				),
+		new Location (0x02, "Novalis Cave Bolt",			""				),
+		new Location (0x04, "Aridia Sandshark Bolt",		""				),
+		new Location (0x05, "Aridia Island Bolt",			""				),
+		new Location (0x06, "Aridia Cannon Bolt",			""				),
+		new Location (0x07, "Aridia Trespasser Bolt",		""				),
+		new Location (0x08, "Kerwan Tunnel Bolt",			""				),
+		new Location (0x09, "Kerwan Skyscraper Bolt",		""				),
+		new Location (0x0A, "Kerwan Train Station Bolt",	""				),
+		new Location (0x0C, "Eudora Bolt",					""				),
+		new Location (0x10, "Rilgar Laser Maze Bolt",		""				),
+		new Location (0x11, "Rilgar Sewers Bolt",			""				),
+		new Location (0x14, "Nebula G34 Bolt",				""				),
+		new Location (0x15, "Nebula G34 Asteroid Bolt",		""				),
+		new Location (0x18, "Umbris Gold Qwark Bolt",		""				),
+		new Location (0x19, "Umbris Tower Bolt",			""				),
+		new Location (0x1C, "Batalia Cliff Bolt",			""				),
+		new Location (0x1D, "Batalia House Bolt",			""				),
+		new Location (0x20, "Gaspar Volcano Bolt",			""				),
+		new Location (0x21, "Gaspar Gas Station Bolt",		""				),
+		new Location (0x24, "Orxon Worm Bolt",				""				),
+		new Location (0x25, "Orxon Clank Section Bolt",		""				),
+		new Location (0x28, "Pokitaru Bolt",				""				),
+		new Location (0x2C, "Hoven Snowfield Bolt",			""				),
+		new Location (0x2D, "Hoven Water Cave Bolt",		""				),
+		new Location (0x30, "Gemlik Base Bolt",				""				),
+		new Location (0x34, "Oltanis Swingshot Path Bolt",	""				),
+		new Location (0x35, "Oltanis Swingshot Ledge Bolt",	""				),
+		new Location (0x36, "Oltanis Ice Ledge Bolt",		""				),
+		new Location (0x37, "Oltanis Ledge Bolt",			""				),
+		new Location (0x38, "Quartu Clank Mama Bolt",		""				),
+		new Location (0x39, "Quartu Codebot Bolt",			""				),
+		new Location (0x3C, "Kalebo III Chickenroom Bolt",	""				),
+		new Location (0x3D, "Kalebo III Grind Bolt",		""				),
+		new Location (0x40, "Dreks Fleet Water Bolt",		""				),
+		new Location (0x41, "Dreks Fleet Robos Bolt",		""				),
+		new Location (0x44, "Veldin Taunter Bolt",			""				),
+		new Location (0x45, "Veldin Rooftops Bolt",			""				),
+		new Location (0x46, "Veldin Grind Bolt",			""				)
+	];
+	
+	//the things that will be shuffled + the seed
+	locationList = shuffle(locationList, rng);
+
+	//define an output block on the page
+	let output = document.getElementById("OutputBlock");
+
+	//attach seed number to be outputed
+	const seedOutput = document.createElement("p");
+	const seedText = document.createTextNode(`Seed: ${inputseed}`);
+	seedOutput.appendChild(seedText);
+
+	//output the seed number first
+	output.appendChild(seedOutput);
+
+	// makes a button and lets you save a file from it
+	let cheatBulk = generateCheatBlock(locationList,itemList);
+	let patchWrapper = createSaveButton('Save Cheat File', function(wrapper){
+		saveTextFile(cheatBulk, wrapper, `${inputseed}.pnach`);
+	});
+	output.appendChild(patchWrapper);
+
+	//output the spoiler log in this block
+	let spoilerBulk = generateSpoilerLog(locationList,itemList);
+	
+	let spoilerWrapper = createSaveButton('Save Spoiler Log', function(wrapper){
+		saveTextFile(spoilerBulk, wrapper, `${inputseed}_spoiler.txt`);
+	});
+	output.appendChild(spoilerWrapper);
+
+	return false
+}
+
+//Shuffle function
+// function shuffle(array, seed) {                // <-- ADDED ARGUMENT
+//   let m = array.length, t, i;
+
+//   // While there remain elements to shuffle…
+//   while (m) {
+
+//     // Pick a remaining element…
+//     i = Math.floor(random(seed) * m--);        // <-- MODIFIED LINE
+
+//     // And swap it with the current element.
+//     t = array[m];
+//     array[m] = array[i];
+//     array[i] = t;
+//     ++seed                                     // <-- ADDED LINE
+//   }
+
+//   return array;
+// }
+
+// The Fisher Yates shuffle method
+function shuffle(array, rng) {
+	for (let i = array.length -1; i > 0; i--) {
+	  	let j = rng.random(i+1);
+	  	let k = array[i];
+	  	array[i] = array[j];
+	  	array[j] = k;
+	}
+	return array;
+}
+
+// function random(seed) {
+//   var x = Math.sin(seed++) * 10000; 
+//   return x - Math.floor(x);
+// }
+
+
+function createSaveButton (buttonText, onclick) {
+	let wrapper = document.createElement('a');
+	let download = document.createElement('button');
+	download.innerHTML = buttonText;
+	download.setAttribute('type', 'button');
+	download.addEventListener('click', (event) => {onclick(wrapper)});
+	wrapper.appendChild(download);
+	return wrapper;
+}
+
+function saveTextFile (text, wrapper, filename) {
+	let output = [];
+    const data = new Blob([text], {type: 'text/plain'});
+	wrapper.href = window.URL.createObjectURL(data);
+	wrapper.download = filename;
+	wrapper.click();
+	window.URL.revokeObjectURL(wrapper.href);
+  };
+
+function generateSpoilerLog(locationList,itemList) {
+	let array = [];
+
+	for (let i = 0; i < locationList.length; i++ )
+        array[i] = [locationList[i],itemList[i]];
+
+	array.sort(function([l1,i1],[l2,i2]){return l1.id - l2.id});
+
+	for (let i = 0; i < array.length; i++ )     
+		array[i] = `${array[i][0].name}:${tab(array[i][0].name.length)}${array[i][1].name}\n`;
+	
+	array.unshift('Spoiler Log:\n');
+	return new Blob(array,{type: 'text/plain'});
+}
+
+function tab(length) {
+	let i = 0;	
+    let tab = "";
+	while (i < 4 - Math.floor((length + 1) / 8)) {
+		tab = `${tab}\t`;
+		i++;
+	}
+	return tab;
+}
+
+function generateCheatBlock(location, items) {
+	let text = "gametitle=Ratchet & Clank\ncomment=Randomizer Prototype\n\n";
+	let i = 0;
+	while (true) {
+		switch (i) {
+			default:
+				text = `${text}${new CheatGenerate([
+					new CheatType(location[i].name,	0xD,	location[i].offset(),	'01',	0,	'100',	'01'	),
+					new CheatType(items[i].name,	0,		items[i].offset1(),		'00',	0,	'000',	'01'	)
+				]).print()}`; //Non Gold Item Changes
+				if (i !== 2) break;
+
+				text = `${text}${new CheatGenerate([
+					new CheatType(items[0].name,	0xD,	location[0].offset(),	'03',	1,	'100',	'01'),
+					new CheatType(items[1].name,	0xD,	location[1].offset(),	'02',	1,	'100',	'01'),
+					new CheatType(items[2].name,	0xD,	location[2].offset(),	'01',	1,	'100',	'01'),
+					new CheatType("Clankn't",		0,		'141728',				'00',	0,	'000',	'01')
+				]).print()}`; //Remove Clank if no packs
+				for (let j = 0; j < 2; j++) {
+					text = `${text}${new CheatGenerate([
+						new CheatType('Current Planet',	0xD,	'14EFE0',				'02',	1,	'100',	'0E'),
+						new CheatType(items[j].name,	0xD,	location[j].offset(),	'01',	0,	'100',	'01'),
+						new CheatType("Clankn't",		0,		'141728',				'00',	0,	'000',	'00')
+					]).print()}`; //Give Clank if you aren't on Oltanis
+				}
+				break;
+			case 5:
+			case 7:
+			case 9:
+			case 14:
+			case 16:
+			case 18:
+			case 21:
+			case 23:
+			case 25:
+			case 30:
+				text = `${text}${new CheatGenerate([
+					new CheatType(location[i].name,		0xD,	location[i].offset(),		'03',	0,	'100',	'01'	),
+					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),		'01',	0,	'100',	'01'	),
+					new CheatType(items[i+1].name,		0,		items[i+1].offset2(),		'00',	0,	'000',	'01'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+				]).print()}`; //Golden Item Changes 1
+				text = `${text}${new CheatGenerate([
+					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),		'03',	0,	'100',	'01'	),
+					new CheatType(location[i].name,		0xD,	location[i].offset(),		'01',	0,	'100',	'01'	),
+					new CheatType(items[i+1].name,		0,		items[i+1].offset2(),		'00',	0,	'000',	'01'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+				]).print()}`; //Golden Item Changes 2
+				i++;
+				if (i !== 8) break;
+
+				text = `${text}${new CheatGenerate([
+					new CheatType(location[i-1].name,	0xD,	location[i+1].offset(),		'03',	1,	'100',	'01'	),
+					new CheatType(location[i].name,		0xD,	location[i].offset(),		'02',	1,	'100',	'01'	),
+					new CheatType('Pause',				0xD,	'15F6A8',					'01',	0,	0,		'0003'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'00'	)
+				]).print()}`; //Remove bomb glove if not collected
+				text = `${text}${new CheatGenerate([
+					new CheatType('(ship) cutscene',	0xD,	'15F6A8',					'01',	0,	0,		'0006'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+				]).print()}`; //give bomb if ship cutscene
+				break;
+			case 38:
+				text = `${text}${new CheatGenerate([
+					new CheatType(location[i].name,		0xD,	location[i].offset(),		'03',	0,	'100',	'01'	),
+					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),		'01',	0,	'100',	'01'	),
+					new CheatType(items[i+1].name,		0,		items[i+1].offset1(),		'00',	0,	'000',	'01'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+				]).print()}`; //Nanotech Changes 1
+				text = `${text}${new CheatGenerate([
+					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),		'03',	0,	'100',	'01'	),
+					new CheatType(location[i].name,		0xD,	location[i].offset(),		'01',	0,	'100',	'01'	),
+					new CheatType(items[i+1].name,		0,		items[i+1].offset1(),		'00',	0,	'000',	'01'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+				]).print()}`; //Nanotech Changes 2
+				text = `${text}${new CheatGenerate([
+					new CheatType(location[i].name,		0xD,	location[i].offset(),		'01',	0,	0,		'0001'	),
+					new CheatType('5 Health',			0,		'15EEA0',					'00',	0,	'000',	'05'	)
+				]).print()}`; //Health Changes 1
+				text = `${text}${new CheatGenerate([
+					new CheatType(location[i].name,		0xD,	location[i].offset(),		'01',	0,	0,		'0101'	),
+					new CheatType('8 Health',			0,		'15EEA0',					'00',	0,	'000',	'08'	)
+				]).print()}`; //Health Changes 2
+				let array = [];
+				let offset = 1;
+				for (let i = 1; i < 0x13; i++) {
+					switch(i) {
+						default:
+							let planet = new Planet(i);
+							array[i-offset] = new CheatType(planet.name,	1,	planet.offset(),	'00',	0,	0,	i<0x10 ? `000${i.toString(16)}`: `00${i.toString(16)}`);
+							break;
+						case 0xA:
+						case 0xD: 
+							offset++;
+							break;
+					}
+				}
+				text = `${text}${new CheatGenerate(array).print()}`; //Give all Planets
+				let orxon = new Planet(0x0A);
+				let gemlik = new Planet(0x0D);
+				text = `${text}${new CheatGenerate([
+					new CheatType(items[4].name,	0xD,	items[4].offset1(),	'02',	0,	'100',	'00'	),
+					new CheatType(orxon.name,		0,		orxon.offset(),		'00',	0,	0,		'0000'	),
+					new CheatType(gemlik.name,		0,		gemlik.offset(),	'00',	0,	0,		'0000'	)
+				]).print()}`; //disable orxon and gemlik without O2 mask
+				text = `${text}${new CheatGenerate([
+					new CheatType(items[4].name,	0xD,	items[4].offset1(),	'02',	0,	'100',	'01'	),
+					new CheatType(orxon.name,		0,		orxon.offset(),		'00',	0,	0,		'000A'	),
+					new CheatType(gemlik.name,		0,		gemlik.offset(),	'00',	0,	0,		'000D'	)
+				]).print()}`; //enable orxon and gemlik with O2 mask
+				return text;
+		}
+		i++;
+	}
+}
+
+</script>
