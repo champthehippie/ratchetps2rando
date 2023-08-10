@@ -27,9 +27,9 @@ class Item {
 	}
 
     // 1st offset for the item memory address for Codebot and Nanotech, 2nd offset for the item memory address given its item id
-	offset1 = () => (this.id + (this.id > 0x2F ? 0x13D460: 0x13D5C8)).toString(16);
+	offset1 = () => (this.id + (this.id > 0x2F ? 0x13D460: 0x13D5C8)).toString(16).toUpperCase();
     
-	offset2 = () => (this.id + 0x13E620).toString(16); //this is 0x1058 above the first offset, this is for golden weapons
+	offset2 = () => (this.id + 0x13E620).toString(16).toUpperCase(); //this is 0x1058 above the first offset, this is for golden weapons
 }
 
 class Location {
@@ -39,7 +39,7 @@ class Location {
 		this.requirements = requirements;
 	}
 
-	offset = () => (this.id + 0x14BFC4).toString(16); //offset for the location memory address given its location id
+	offset = () => (this.id + 0x14BFC4).toString(16).toUpperCase(); //offset for the location memory address given its location id
 }
 
 class Planet {
@@ -106,7 +106,7 @@ class Planet {
 		}
 	}
 
-	offset = () => ((this.id * 4) + 0x13D616).toString(16); //offset for the location memory address given its location id	
+	offset = () => ((this.id * 4) + 0x13D616).toString(16).toUpperCase(); //offset for the location memory address given its location id	
 }
 
 class CheatType {
@@ -165,7 +165,7 @@ class CheatGenerate {
 	build()	{
 		let output = '';
 		for (let i = 0; i < this.ammount ;i++) 
-			output = `${output}patch=1,EE,${(this.line[i].type).toString(16)}0${this.line[i].address},extended,${this.line[i].count}${this.line[i].sign}${this.line[i].size}${this.line[i].value}\n`;
+			output = `${output}patch=1,EE,${(this.line[i].type).toString(16).toUpperCase()}0${this.line[i].address},extended,${this.line[i].count}${this.line[i].sign}${this.line[i].size}${this.line[i].value}\n`;
 		
 		return output;
 	}
@@ -522,7 +522,7 @@ function generateCheatBlock(location, items) {
 					switch(i) {
 						default:
 							let planet = new Planet(i);
-							array[i-offset] = new CheatType(planet.name,	1,	planet.offset(),	'00',	0,	0,	i<0x10 ? `000${i.toString(16)}`: `00${i.toString(16)}`);
+							array[i-offset] = new CheatType(planet.name,	1,	planet.offset(),	'00',	0,	0,	i<0x10 ? `000${i.toString(16).toUpperCase()}`: `00${i.toString(16).toUpperCase()}`);
 							break;
 						case 0xA:
 						case 0xD: 
