@@ -3,12 +3,11 @@
 
 ## Installation
 
-- Download the [seed generator](https://github.com/champthehippie/ratchetps2rando/blob/8bc4dab40bb60d75ae380175bbe3647ca5083130/Randomizer_code_without_logic.html)
-- Open the Generator with a Web Browser
+- Open the seed generator [seed generator](https://champthehippie.github.io/ratchetps2rando/Randomizer_code_without_logic)
 - Enter a seed number (or leave blank for a random seed), and then press `Randomize`.
 - Once the seed is generated, press `Save Cheat File` which will save a `.pnach` file to your downloads folder
-- Move this file to your Emulators cheat folder and enable cheats in the emulator settings.
-- Load PAL v2.0 of Ratchet & Clank to play.
+- Move this file to your Emulator's cheat folder and enable cheats in the emulator settings.
+- Load PAL v2.0 of Ratchet & Clank and a save file to play.
 
 ## Web page functionality
 
