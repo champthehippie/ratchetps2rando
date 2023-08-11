@@ -470,51 +470,51 @@ function generateCheatBlock(location, items) {
 			case 25:
 			case 30:
 				text = `${text}${new CheatGenerate([
-					new CheatType(location[i].name,		0xD,	location[i].offset(),		'03',	0,	'100',	'01'	),
-					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),		'01',	0,	'100',	'01'	),
-					new CheatType(items[i+1].name,		0,		items[i+1].offset2(),		'00',	0,	'000',	'01'	),
-					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+					new CheatType(location[i].name,		0xD,	location[i].offset(),	'03',	0,	'100',	'01'	),
+					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),	'01',	0,	'100',	'01'	),
+					new CheatType(items[i+1].name,		0,		items[i+1].offset2(),	'00',	0,	'000',	'01'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),		'00',	0,	'000',	'01'	)
 				]).print()}`; //Golden Item Changes 1
 				text = `${text}${new CheatGenerate([
-					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),		'03',	0,	'100',	'01'	),
-					new CheatType(location[i].name,		0xD,	location[i].offset(),		'01',	0,	'100',	'01'	),
-					new CheatType(items[i+1].name,		0,		items[i+1].offset2(),		'00',	0,	'000',	'01'	),
-					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),	'03',	0,	'100',	'01'	),
+					new CheatType(location[i].name,		0xD,	location[i].offset(),	'01',	0,	'100',	'01'	),
+					new CheatType(items[i+1].name,		0,		items[i+1].offset2(),	'00',	0,	'000',	'01'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),		'00',	0,	'000',	'01'	)
 				]).print()}`; //Golden Item Changes 2
 				i++;
 				if (i !== 8) break;
 
 				text = `${text}${new CheatGenerate([
-					new CheatType(location[i-1].name,	0xD,	location[i+1].offset(),		'03',	1,	'100',	'01'	),
-					new CheatType(location[i].name,		0xD,	location[i].offset(),		'02',	1,	'100',	'01'	),
-					new CheatType('Pause',				0xD,	'15F6A8',					'01',	0,	0,		'0003'	),
-					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'00'	)
+					new CheatType(location[i-1].name,	0xD,	location[i+1].offset(),	'03',	1,	'100',	'01'	),
+					new CheatType(location[i].name,		0xD,	location[i].offset(),	'02',	1,	'100',	'01'	),
+					new CheatType('Pause',				0xD,	'15F6A8',				'01',	0,	0,		'0003'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),		'00',	0,	'000',	'00'	)
 				]).print()}`; //Remove bomb glove if not collected
 				text = `${text}${new CheatGenerate([
-					new CheatType('(ship) cutscene',	0xD,	'15F6A8',					'01',	0,	0,		'0006'	),
-					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+					new CheatType('(ship) cutscene',	0xD,	'15F6A8',				'01',	0,	0,		'0006'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),		'00',	0,	'000',	'01'	)
 				]).print()}`; //give bomb if ship cutscene
 				break;
 			case 38:
 				text = `${text}${new CheatGenerate([
-					new CheatType(location[i].name,		0xD,	location[i].offset(),		'03',	0,	'100',	'01'	),
-					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),		'01',	0,	'100',	'01'	),
-					new CheatType(items[i+1].name,		0,		items[i+1].offset1(),		'00',	0,	'000',	'01'	),
-					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+					new CheatType(location[i].name,		0xD,	location[i].offset(),	'03',	0,	'100',	'01'	),
+					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),	'01',	0,	'100',	'01'	),
+					new CheatType(items[i+1].name,		0,		items[i+1].offset1(),	'00',	0,	'000',	'01'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),		'00',	0,	'000',	'01'	)
 				]).print()}`; //Nanotech Changes 1
 				text = `${text}${new CheatGenerate([
-					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),		'03',	0,	'100',	'01'	),
-					new CheatType(location[i].name,		0xD,	location[i].offset(),		'01',	0,	'100',	'01'	),
-					new CheatType(items[i+1].name,		0,		items[i+1].offset1(),		'00',	0,	'000',	'01'	),
-					new CheatType(items[i].name,		0,		items[i].offset1(),			'00',	0,	'000',	'01'	)
+					new CheatType(location[i+1].name,	0xD,	location[i+1].offset(),	'03',	0,	'100',	'01'	),
+					new CheatType(location[i].name,		0xD,	location[i].offset(),	'01',	0,	'100',	'01'	),
+					new CheatType(items[i+1].name,		0,		items[i+1].offset1(),	'00',	0,	'000',	'01'	),
+					new CheatType(items[i].name,		0,		items[i].offset1(),		'00',	0,	'000',	'01'	)
 				]).print()}`; //Nanotech Changes 2
 				text = `${text}${new CheatGenerate([
-					new CheatType(location[i].name,		0xD,	location[i].offset(),		'01',	0,	0,		'0001'	),
-					new CheatType('5 Health',			0,		'15EEA0',					'00',	0,	'000',	'05'	)
+					new CheatType(items[i].name,		0xD,	items[i].offset1(),		'01',	0,	0,		'0001'	),
+					new CheatType('5 Health',			0,		'15EEA0',				'00',	0,	'000',	'05'	)
 				]).print()}`; //Health Changes 1
 				text = `${text}${new CheatGenerate([
-					new CheatType(location[i].name,		0xD,	location[i].offset(),		'01',	0,	0,		'0101'	),
-					new CheatType('8 Health',			0,		'15EEA0',					'00',	0,	'000',	'08'	)
+					new CheatType(items[i].name,		0xD,	items[i].offset1(),		'01',	0,	0,		'0101'	),
+					new CheatType('8 Health',			0,		'15EEA0',				'00',	0,	'000',	'08'	)
 				]).print()}`; //Health Changes 2
 				let array = [];
 				let offset = 1;
