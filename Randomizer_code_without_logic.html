@@ -335,14 +335,14 @@ function randomize() {
 	output.appendChild(seedOutput);
 
 	// makes a button and lets you save a file from it
-	let cheatBulk = generateCheatBlock(locationList,itemList);
+	let cheatBulk = generateCheatBlock(locationList,itemList,inputseed);
 	let patchWrapper = createSaveButton('Save Cheat File', function(wrapper){
-		saveTextFile(cheatBulk, wrapper, `${inputseed}.pnach`);
+		saveTextFile(cheatBulk, wrapper, '76F724A3.pnach');
 	});
 	output.appendChild(patchWrapper);
 
 	//output the spoiler log in this block
-	let spoilerBulk = generateSpoilerLog(locationList,itemList);
+	let spoilerBulk = generateSpoilerLog(locationList,itemList,inputseed);
 	
 	let spoilerWrapper = createSaveButton('Save Spoiler Log', function(wrapper){
 		saveTextFile(spoilerBulk, wrapper, `${inputseed}_spoiler.txt`);
@@ -408,7 +408,7 @@ function saveTextFile (text, wrapper, filename) {
 	window.URL.revokeObjectURL(wrapper.href);
   };
 
-function generateSpoilerLog(locationList,itemList) {
+function generateSpoilerLog(locationList,itemList,seed) {
 	let array = [];
 
 	for (let i = 0; i < locationList.length; i++ )
@@ -420,6 +420,7 @@ function generateSpoilerLog(locationList,itemList) {
 		array[i] = `${array[i][0].name}:${tab(array[i][0].name.length)}${array[i][1].name}\n`;
 	
 	array.unshift('Spoiler Log:\n');
+	array.unshift(`Seed: ${seed}\n`);
 	return new Blob(array,{type: 'text/plain'});
 }
 
@@ -433,8 +434,8 @@ function tab(length) {
 	return tab;
 }
 
-function generateCheatBlock(location, items) {
-	let text = "gametitle=Ratchet & Clank\ncomment=Randomizer Prototype\n\n";
+function generateCheatBlock(location, items, seed) {
+	let text = `//Seed:${seed}\ngametitle=Ratchet & Clank\ncomment=Randomizer Prototype\n\n`;
 	let i = 0;
 	while (true) {
 		switch (i) {
